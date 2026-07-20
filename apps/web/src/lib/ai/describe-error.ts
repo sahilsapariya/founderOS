@@ -38,6 +38,9 @@ export function describeAiError(e: unknown, where: string): string {
   if (status === 429) {
     return "The AI provider's rate limit was hit. Wait a moment and try again.";
   }
+  if (status === 503) {
+    return "The AI provider is overloaded right now. Wait a moment and try again.";
+  }
 
   return message || "AI request failed.";
 }
