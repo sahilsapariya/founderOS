@@ -157,13 +157,14 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://founderos-sahilsapariyas-projects.vercel.app"
+site_url = "https://founderos-liart.vercel.app"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 # (Dev server uses a dynamic port on Sahil's machine — wildcard covers any
 #  localhost port. Tighten this to exact URLs at production deploy time.)
 additional_redirect_urls = [
+  "https://founderos-liart.vercel.app/auth/callback",
   "https://founderos-sahilsapariyas-projects.vercel.app/auth/callback",
   "https://founderos-*-sahilsapariyas-projects.vercel.app/auth/callback",
   "http://localhost:3000/auth/callback",
