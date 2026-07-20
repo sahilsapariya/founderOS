@@ -1,3 +1,5 @@
+import type { ProjectRef, ProjectRow, TaskRow } from "@/lib/db-types";
+
 import { ActivityFeed } from "./activity-feed";
 import { AIDailyBrief } from "./ai-daily-brief";
 import { AISuggestions } from "./ai-suggestions";
@@ -33,7 +35,15 @@ function Cell({
   );
 }
 
-export function DashboardGrid() {
+export function DashboardGrid({
+  projects,
+  tasks,
+  projectRefs,
+}: {
+  projects: ProjectRow[];
+  tasks: TaskRow[];
+  projectRefs: ProjectRef[];
+}) {
   return (
     <div className="grid grid-cols-1 gap-5 md:grid-cols-6 xl:grid-cols-12">
       {/* Row 1 */}
@@ -41,7 +51,7 @@ export function DashboardGrid() {
         <AIDailyBrief />
       </Cell>
       <Cell index={1} className="md:col-span-3 xl:col-span-4">
-        <TodaysFocus />
+        <TodaysFocus tasks={tasks} projects={projectRefs} />
       </Cell>
       <Cell index={2} className="md:col-span-3 xl:col-span-4">
         <CalendarWidget />
@@ -49,7 +59,7 @@ export function DashboardGrid() {
 
       {/* Row 2 */}
       <Cell index={3} className="md:col-span-3 xl:col-span-3">
-        <ProjectsOverview />
+        <ProjectsOverview projects={projects} />
       </Cell>
       <Cell index={4} className="md:col-span-3 xl:col-span-5">
         <FinanceSummary />

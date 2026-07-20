@@ -5,9 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronsUpDown, LogOut, Settings, Sparkles, User } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { currentUser } from "@/lib/mock-data";
+import type { SessionUser } from "@/lib/db-types";
 import { createClient } from "@/lib/supabase/client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +19,7 @@ import {
 import { Logo } from "./logo";
 import { mainNav, quickActions } from "./nav-config";
 
-export function Sidebar() {
+export function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -95,14 +95,17 @@ export function Sidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-2.5 rounded-lg p-2 text-left transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
               <Avatar className="size-8">
-                <AvatarFallback>{currentUser.initials}</AvatarFallback>
+                {user.avatarUrl && (
+                  <AvatarImage src={user.avatarUrl} alt={user.name} />
+                )}
+                <AvatarFallback>{user.initials}</AvatarFallback>
               </Avatar>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-medium text-foreground">
-                  {currentUser.fullName}
+                  {user.name}
                 </span>
                 <span className="block truncate text-[11.5px] text-subtle-foreground">
-                  {currentUser.email}
+                  {user.email}
                 </span>
               </span>
               <ChevronsUpDown className="size-3.5 shrink-0 text-subtle-foreground" />
@@ -128,12 +131,12 @@ export function Sidebar() {
         <div className="mt-2 rounded-lg border border-primary/20 bg-gradient-to-br from-primary/12 to-[#8b5cf6]/8 px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <Sparkles className="size-3.5 text-[#a5b4fc]" />
-            <span className="text-[13px] font-semibold text-gradient-primary">
-              {currentUser.plan} Plan
+            <span className="text-[13px] font-semibold text-gradient-primary capitalize">
+              {user.plan} Plan
             </span>
           </div>
           <p className="mt-0.5 text-[11px] text-subtle-foreground">
-            Renews on {currentUser.planRenews}
+            FounderOS early access
           </p>
         </div>
       </div>

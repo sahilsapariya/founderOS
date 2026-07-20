@@ -27,6 +27,17 @@ export function formatPercent(value: number, signed = false): string {
   return `${sign}${value}%`;
 }
 
+export function getInitials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "F"
+  );
+}
+
 export function timeBasedGreeting(date = new Date()): string {
   const h = date.getHours();
   if (h < 5) return "Burning the midnight oil";

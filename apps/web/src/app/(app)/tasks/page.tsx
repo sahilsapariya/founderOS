@@ -1,17 +1,24 @@
 import type { Metadata } from "next";
-import { CircleCheckBig } from "lucide-react";
 
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { createClient } from "@/lib/supabase/server";
+import { KanbanBoard } from "@/components/tasks/kanban-board";
 
 export const metadata: Metadata = { title: "Tasks" };
 
-export default function TasksPage() {
-  return (
-    <ModulePlaceholder
-      icon={CircleCheckBig}
-      title="Tasks"
-      description="A keyboard-first kanban with filters, priorities, labels, and a task drawer — everything on your plate, organized."
-      actionLabel="Create your first task"
-    />
-  );
+export default async function TasksPage() {
+  const supabase = await createClient();
+
+  const [{ data: tasks }, { data: projects }] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select("*")
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("projects")
+      .select("id, name, color")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  return <KanbanBoard tasks={tasks ?? []} projects={projects ?? []} />;
 }

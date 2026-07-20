@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { currentUser, notificationCount } from "@/lib/mock-data";
+import { notificationCount } from "@/lib/mock-data";
+import type { SessionUser } from "@/lib/db-types";
 import { timeBasedGreeting } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,13 @@ const notifications = [
   { id: 3, text: "“Finish Stripe integration” is due at 10:00 AM", when: "6h ago" },
 ];
 
-export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
+export function TopBar({
+  user,
+  onOpenPalette,
+}: {
+  user: SessionUser;
+  onOpenPalette: () => void;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [spinning, setSpinning] = React.useState(false);
@@ -60,7 +67,7 @@ export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
               className="truncate text-[25px] font-semibold tracking-tight"
               suppressHydrationWarning
             >
-              {timeBasedGreeting()}, {currentUser.name}{" "}
+              {timeBasedGreeting()}, {user.firstName}{" "}
               <span className="inline-block origin-[70%_70%] hover:animate-[wave_0.6s_ease]">
                 👋
               </span>
@@ -105,11 +112,11 @@ export function TopBar({ onOpenPalette }: { onOpenPalette: () => void }) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onSelect={() => router.push("/tasks")}>
+            <DropdownMenuItem onSelect={() => router.push("/tasks?new=1")}>
               <SquarePen /> New Task
               <DropdownMenuShortcut>⌘T</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => router.push("/projects")}>
+            <DropdownMenuItem onSelect={() => router.push("/projects?new=1")}>
               <FolderPlus /> New Project
               <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>

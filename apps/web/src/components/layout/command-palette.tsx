@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, FolderKanban } from "lucide-react";
 
-import { projects } from "@/lib/mock-data";
+import type { ProjectRef } from "@/lib/db-types";
 import {
   CommandDialog,
   CommandEmpty,
@@ -20,9 +20,11 @@ import { mainNav, quickActions } from "./nav-config";
 export function CommandPalette({
   open,
   onOpenChange,
+  projects,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  projects: ProjectRef[];
 }) {
   const router = useRouter();
 
@@ -61,17 +63,19 @@ export function CommandPalette({
           ))}
         </CommandGroup>
 
-        <CommandSeparator />
-
-        <CommandGroup heading="Projects">
-          {projects.map((p) => (
-            <CommandItem key={p.id} onSelect={() => go("/projects")}>
-              <FolderKanban />
-              {p.name}
-              <CommandShortcut className="capitalize">{p.status}</CommandShortcut>
-            </CommandItem>
-          ))}
-        </CommandGroup>
+        {projects.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Projects">
+              {projects.map((p) => (
+                <CommandItem key={p.id} onSelect={() => go("/projects")}>
+                  <FolderKanban />
+                  {p.name}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   );
