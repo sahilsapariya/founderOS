@@ -178,17 +178,24 @@ function DropdownMenuSubTrigger({
 
 function DropdownMenuSubContent({
   className,
+  sideOffset = 4,
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
   return (
-    <DropdownMenuPrimitive.SubContent
-      data-slot="dropdown-menu-sub-content"
-      className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-xl shadow-black/50",
-        className,
-      )}
-      {...props}
-    />
+    // Portal is required: without it the submenu renders inside the parent
+    // menu, whose overflow-hidden clips it.
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.SubContent
+        data-slot="dropdown-menu-sub-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 min-w-[9rem] overflow-hidden rounded-lg border border-border bg-popover p-1 shadow-xl shadow-black/50",
+          "animate-fade-in",
+          className,
+        )}
+        {...props}
+      />
+    </DropdownMenuPrimitive.Portal>
   );
 }
 

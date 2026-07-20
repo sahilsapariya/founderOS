@@ -6,6 +6,7 @@ import { format, isPast, isToday } from "date-fns";
 import {
   ArrowRight,
   CalendarClock,
+  GripVertical,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -33,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TaskFormDialog, taskStatusLabels } from "./task-form-dialog";
+
+const DRAG_MIME = "application/x-founderos-task";
 
 const columnDot: Record<TaskStatusDb, string> = {
   backlog: "bg-[#5d6474]",
@@ -72,43 +75,54 @@ function DueChip({ dueAt, done }: { dueAt: string | null; done: boolean }) {
 
 function TaskCard({
   task,
+  status,
   project,
+  isDragging,
+  onDragStart,
+  onDragEnd,
+  onMove,
   onEdit,
   onDelete,
 }: {
   task: TaskRow;
+  status: TaskStatusDb;
   project: ProjectRef | undefined;
+  isDragging: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: () => void;
+  onMove: (status: TaskStatusDb) => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const [pending, startTransition] = React.useTransition();
-  const done = task.status === "done";
+  const done = status === "done";
   const accent =
     project && (project.color as AccentColor) in accentStyles
       ? (project.color as AccentColor)
       : "slate";
 
-  const move = (status: TaskStatusDb) =>
-    startTransition(async () => {
-      await setTaskStatus(task.id, status);
-    });
-
   return (
     <Card
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       className={cn(
-        "group/task flex flex-col gap-2.5 p-3.5 transition-all hover:border-border-strong hover:bg-card-elevated",
-        pending && "opacity-50",
+        "group/task flex cursor-grab flex-col gap-2.5 p-3.5 transition-all select-none",
+        "hover:border-border-strong hover:bg-card-elevated active:cursor-grabbing",
+        isDragging && "rotate-1 opacity-40 ring-1 ring-primary/40",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p
-          className={cn(
-            "text-[13px] leading-snug font-medium",
-            done && "text-subtle-foreground line-through",
-          )}
-        >
-          {task.title}
-        </p>
+        <div className="flex min-w-0 items-start gap-1.5">
+          <GripVertical className="mt-0.5 size-3.5 shrink-0 text-subtle-foreground/60 opacity-0 transition-opacity group-hover/task:opacity-100" />
+          <p
+            className={cn(
+              "text-[13px] leading-snug font-medium",
+              done && "text-subtle-foreground line-through",
+            )}
+          >
+            {task.title}
+          </p>
+        </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -131,9 +145,9 @@ function TaskCard({
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 {taskStatuses
-                  .filter((s) => s !== task.status)
+                  .filter((s) => s !== status)
                   .map((s) => (
-                    <DropdownMenuItem key={s} onSelect={() => move(s)}>
+                    <DropdownMenuItem key={s} onSelect={() => onMove(s)}>
                       <span className={cn("size-2 rounded-full", columnDot[s])} />
                       {taskStatusLabels[s]}
                     </DropdownMenuItem>
@@ -148,7 +162,7 @@ function TaskCard({
         </DropdownMenu>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 pl-5">
         {project && (
           <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
             <span className={cn("size-2 rounded-full", accentStyles[accent].bar)} />
@@ -183,6 +197,52 @@ export function KanbanBoard({
   const [createStatus, setCreateStatus] = React.useState<TaskStatusDb>("todo");
   const [deleting, setDeleting] = React.useState<TaskRow | null>(null);
 
+  // Drag & drop state — optimistic column overrides so drops feel instant.
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const [dropTarget, setDropTarget] = React.useState<TaskStatusDb | null>(null);
+  const [overrides, setOverrides] = React.useState<Record<string, TaskStatusDb>>({});
+  const [, startTransition] = React.useTransition();
+
+  // Drop overrides once the server state has caught up.
+  React.useEffect(() => {
+    setOverrides((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const task of tasks) {
+        if (next[task.id] && next[task.id] === task.status) {
+          delete next[task.id];
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [tasks]);
+
+  const effectiveStatus = React.useCallback(
+    (task: TaskRow): TaskStatusDb => overrides[task.id] ?? (task.status as TaskStatusDb),
+    [overrides],
+  );
+
+  const moveTask = React.useCallback(
+    (taskId: string, status: TaskStatusDb) => {
+      const task = tasks.find((t) => t.id === taskId);
+      if (!task || effectiveStatus(task) === status) return;
+
+      setOverrides((prev) => ({ ...prev, [taskId]: status }));
+      startTransition(async () => {
+        const result = await setTaskStatus(taskId, status);
+        if (!result.ok) {
+          setOverrides((prev) => {
+            const next = { ...prev };
+            delete next[taskId];
+            return next;
+          });
+        }
+      });
+    },
+    [tasks, effectiveStatus],
+  );
+
   React.useEffect(() => {
     if (searchParams.get("new") === "1") {
       setEditing(null);
@@ -215,9 +275,34 @@ export function KanbanBoard({
       <div className="-mx-7 overflow-x-auto px-7 pb-2">
         <div className="grid min-w-[900px] grid-cols-5 gap-3">
           {taskStatuses.map((status) => {
-            const columnTasks = tasks.filter((t) => t.status === status);
+            const columnTasks = tasks.filter((t) => effectiveStatus(t) === status);
+            const isDropTarget = dropTarget === status && draggingId !== null;
+
             return (
-              <div key={status} className="flex min-w-0 flex-col gap-2.5">
+              <div
+                key={status}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = "move";
+                  if (dropTarget !== status) setDropTarget(status);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDropTarget((cur) => (cur === status ? null : cur));
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const id = e.dataTransfer.getData(DRAG_MIME);
+                  setDropTarget(null);
+                  setDraggingId(null);
+                  if (id) moveTask(id, status);
+                }}
+                className={cn(
+                  "-m-1.5 flex min-w-0 flex-col gap-2.5 rounded-xl p-1.5 transition-colors duration-150",
+                  isDropTarget && "bg-primary/[0.07] ring-1 ring-primary/30",
+                )}
+              >
                 <div className="flex items-center gap-2 px-1">
                   <span className={cn("size-2 rounded-full", columnDot[status])} />
                   <span className="text-[12.5px] font-semibold">
@@ -235,16 +320,26 @@ export function KanbanBoard({
                   </button>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex min-h-24 flex-col gap-2">
                   {columnTasks.map((task) => (
                     <TaskCard
                       key={task.id}
                       task={task}
+                      status={effectiveStatus(task)}
                       project={
-                        task.project_id
-                          ? projectById.get(task.project_id)
-                          : undefined
+                        task.project_id ? projectById.get(task.project_id) : undefined
                       }
+                      isDragging={draggingId === task.id}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(DRAG_MIME, task.id);
+                        e.dataTransfer.effectAllowed = "move";
+                        setDraggingId(task.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggingId(null);
+                        setDropTarget(null);
+                      }}
+                      onMove={(s) => moveTask(task.id, s)}
                       onEdit={() => {
                         setEditing(task);
                         setFormOpen(true);
@@ -255,9 +350,12 @@ export function KanbanBoard({
                   {columnTasks.length === 0 && (
                     <button
                       onClick={() => openCreate(status)}
-                      className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-[11.5px] text-subtle-foreground transition-colors hover:border-border-strong hover:text-muted-foreground"
+                      className={cn(
+                        "rounded-xl border border-dashed border-border px-3 py-6 text-center text-[11.5px] text-subtle-foreground transition-colors hover:border-border-strong hover:text-muted-foreground",
+                        isDropTarget && "border-primary/40 text-[#a5b4fc]",
+                      )}
                     >
-                      + Add a task
+                      {isDropTarget ? "Drop here" : "+ Add a task"}
                     </button>
                   )}
                 </div>
