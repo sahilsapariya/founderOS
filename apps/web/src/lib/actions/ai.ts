@@ -7,7 +7,16 @@ import { AI_MODEL, aiEnabled, buildWorkspaceContext } from "@/lib/ai/context";
 import { createClient } from "@/lib/supabase/server";
 
 const NO_KEY_ERROR =
-  "OpenAI is not configured yet. Add OPENAI_API_KEY to apps/web/.env (and your Vercel env) to enable AI features.";
+  "No AI key configured yet. Add AI_API_KEY to apps/web/.env (free Gemini key: aistudio.google.com/apikey) and to the Vercel env — presets are in the file.";
+
+/** Providers sometimes wrap JSON in markdown fences — parse defensively. */
+function parseJsonLoose<T>(raw: string): T {
+  const cleaned = raw
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/, "");
+  return JSON.parse(cleaned) as T;
+}
 
 export interface AiBriefContent {
   summary: string;
@@ -32,63 +41,82 @@ export async function generateDailyBrief(): Promise<BriefResult> {
     const context = await buildWorkspaceContext();
     const openai = createAIClient();
 
-    const completion = await openai.chat.completions.create({
-      model: AI_MODEL,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "daily_brief",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            required: ["summary", "recommendation", "focus_points"],
-            properties: {
-              summary: {
-                type: "string",
-                description:
-                  "Two sentences max. What today looks like for this founder.",
-              },
-              recommendation: {
-                type: "string",
-                description:
-                  "One concrete, specific action to prioritize today and why.",
-              },
-              focus_points: {
-                type: "array",
-                maxItems: 3,
-                items: { type: "string" },
-                description: "Up to three short, punchy focus bullets.",
-              },
-            },
-          },
+    const systemPrompt =
+      "You are the chief of staff inside FounderOS, a founder's command center. " +
+      "Be direct, specific, and concise — reference actual task, project, and event names from the workspace. " +
+      "Never invent items that are not in the context.";
+    const userPrompt = `Prepare my daily brief.\n\nWORKSPACE:\n${context}`;
+
+    const briefSchema = {
+      type: "object",
+      additionalProperties: false,
+      required: ["summary", "recommendation", "focus_points"],
+      properties: {
+        summary: {
+          type: "string",
+          description: "Two sentences max. What today looks like for this founder.",
+        },
+        recommendation: {
+          type: "string",
+          description: "One concrete, specific action to prioritize today and why.",
+        },
+        focus_points: {
+          type: "array",
+          maxItems: 3,
+          items: { type: "string" },
+          description: "Up to three short, punchy focus bullets.",
         },
       },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the chief of staff inside FounderOS, a founder's command center. " +
-            "Be direct, specific, and concise — reference actual task, project, and event names from the workspace. " +
-            "Never invent items that are not in the context.",
-        },
-        {
-          role: "user",
-          content: `Prepare my daily brief.\n\nWORKSPACE:\n${context}`,
-        },
-      ],
-    });
+    };
 
-    const raw = completion.choices[0]?.message?.content;
+    let raw: string | null | undefined;
+    try {
+      const completion = await openai.chat.completions.create({
+        model: AI_MODEL,
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "daily_brief", strict: true, schema: briefSchema },
+        },
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      raw = completion.choices[0]?.message?.content;
+    } catch {
+      // Some OpenAI-compatible providers reject strict json_schema —
+      // retry with plain JSON mode and the schema described in the prompt.
+      const completion = await openai.chat.completions.create({
+        model: AI_MODEL,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `${userPrompt}\n\nRespond ONLY with a JSON object shaped exactly like: {"summary": string (2 sentences max), "recommendation": string (one concrete action), "focus_points": string[] (max 3 short bullets)}`,
+          },
+        ],
+      });
+      raw = completion.choices[0]?.message?.content;
+    }
+
     if (!raw) return { ok: false, error: "The model returned an empty response." };
 
-    const brief = JSON.parse(raw) as AiBriefContent;
+    const brief = parseJsonLoose<AiBriefContent>(raw);
+    if (
+      typeof brief.summary !== "string" ||
+      typeof brief.recommendation !== "string" ||
+      !Array.isArray(brief.focus_points)
+    ) {
+      return { ok: false, error: "The model returned an unexpected shape. Try again." };
+    }
+    brief.focus_points = brief.focus_points.slice(0, 3).map(String);
 
     const { error } = await supabase.from("ai_briefs").upsert(
       {
         user_id: user.id,
         brief_date: new Date().toISOString().slice(0, 10),
-        content: JSON.parse(raw),
+        content: JSON.parse(JSON.stringify(brief)),
         model: AI_MODEL,
       },
       { onConflict: "user_id,brief_date" },

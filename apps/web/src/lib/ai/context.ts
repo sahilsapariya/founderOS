@@ -2,11 +2,13 @@ import { format } from "date-fns";
 
 import { createClient } from "@/lib/supabase/server";
 
+// `||` (not ??) so empty-string env values fall through cleanly.
 export function aiEnabled(): boolean {
-  return Boolean(process.env.OPENAI_API_KEY);
+  return Boolean(process.env.AI_API_KEY || process.env.OPENAI_API_KEY);
 }
 
-export const AI_MODEL = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
+export const AI_MODEL =
+  process.env.AI_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 /**
  * Compact, token-frugal snapshot of the signed-in user's workspace used as

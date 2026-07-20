@@ -65,11 +65,21 @@ export function AssistantView({ aiEnabled }: { aiEnabled: boolean }) {
         <Card className="flex items-start gap-3 border-warning/25 bg-warning/8 p-4">
           <KeyRound className="mt-0.5 size-4 shrink-0 text-warning" />
           <div>
-            <p className="text-[13.5px] font-medium">OpenAI key not configured</p>
+            <p className="text-[13.5px] font-medium">AI key not configured</p>
             <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">
-              Add <code className="rounded bg-secondary px-1 py-0.5 text-[11px]">OPENAI_API_KEY</code>{" "}
-              to <code className="rounded bg-secondary px-1 py-0.5 text-[11px]">apps/web/.env</code>{" "}
-              (and the Vercel project env) — the assistant and Daily Brief switch on
+              Get a <span className="font-medium text-foreground">free Gemini key</span> at{" "}
+              <a
+                href="https://aistudio.google.com/apikey"
+                target="_blank"
+                rel="noreferrer"
+                className="text-[#a5b4fc] hover:underline"
+              >
+                aistudio.google.com/apikey
+              </a>{" "}
+              (or use OpenAI/Groq) and fill the{" "}
+              <code className="rounded bg-secondary px-1 py-0.5 text-[11px]">AI_API_KEY</code>{" "}
+              slot in <code className="rounded bg-secondary px-1 py-0.5 text-[11px]">apps/web/.env</code>{" "}
+              — presets are in the file. The assistant and Daily Brief switch on
               automatically.
             </p>
           </div>

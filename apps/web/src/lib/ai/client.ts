@@ -1,17 +1,23 @@
 import OpenAI from "openai";
 
 /**
- * Server-only OpenAI client for the AI module (Daily Brief, suggestions,
- * assistant). Never import this from client components.
+ * Server-only AI client. Works with any OpenAI-compatible provider:
+ *  - OpenAI (default):  AI_API_KEY only
+ *  - Google Gemini:     AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
+ *  - Groq:              AI_BASE_URL=https://api.groq.com/openai/v1
+ * Never import from client components.
  */
 export function createAIClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.AI_API_KEY || process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "OPENAI_API_KEY is not set. Copy apps/web/.env.example to .env.local and add your key.",
+      "No AI key configured. Set AI_API_KEY (any OpenAI-compatible provider) in apps/web/.env.",
     );
   }
 
-  return new OpenAI({ apiKey });
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.AI_BASE_URL || undefined,
+  });
 }
