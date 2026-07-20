@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { createAIClient } from "@/lib/ai/client";
 import { AI_MODEL, aiEnabled, buildWorkspaceContext } from "@/lib/ai/context";
+import { describeAiError } from "@/lib/ai/describe-error";
 import { createClient } from "@/lib/supabase/server";
 
 const NO_KEY_ERROR =
@@ -83,9 +84,13 @@ export async function generateDailyBrief(): Promise<BriefResult> {
         ],
       });
       raw = completion.choices[0]?.message?.content;
-    } catch {
+    } catch (schemaError) {
       // Some OpenAI-compatible providers reject strict json_schema —
       // retry with plain JSON mode and the schema described in the prompt.
+      console.warn(
+        "[ai:brief] json_schema attempt failed, falling back to json_object:",
+        schemaError instanceof Error ? schemaError.message : schemaError,
+      );
       const completion = await openai.chat.completions.create({
         model: AI_MODEL,
         response_format: { type: "json_object" },
@@ -126,8 +131,7 @@ export async function generateDailyBrief(): Promise<BriefResult> {
     revalidatePath("/dashboard");
     return { ok: true, brief };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "AI generation failed.";
-    return { ok: false, error: message };
+    return { ok: false, error: describeAiError(e, "brief") };
   }
 }
 
@@ -179,7 +183,6 @@ export async function askAssistant(input: {
 
     return { ok: true, answer };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "AI request failed.";
-    return { ok: false, error: message };
+    return { ok: false, error: describeAiError(e, "assistant") };
   }
 }
