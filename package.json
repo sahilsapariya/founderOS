@@ -1,8 +1,9 @@
 {
   "name": "founderos",
   "version": "0.1.0",
-  "description": "A modern, AI-powered platform",
+  "description": "FounderOS — AI-powered operating system for founders",
   "private": true,
+  "packageManager": "npm@10.9.8",
   "workspaces": [
     "apps/*",
     "packages/*"
