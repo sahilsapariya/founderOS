@@ -1,17 +1,35 @@
 import type { Metadata } from "next";
-import { Wallet } from "lucide-react";
+import { format, subMonths } from "date-fns";
 
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { createClient } from "@/lib/supabase/server";
+import { FinanceView } from "@/components/finance/finance-view";
 
 export const metadata: Metadata = { title: "Finance" };
 
-export default function FinancePage() {
+export default async function FinancePage() {
+  const supabase = await createClient();
+  const since = format(subMonths(new Date(), 7), "yyyy-MM-01");
+
+  const [{ data: settings }, { data: sources }, { data: entries }] =
+    await Promise.all([
+      supabase.from("finance_settings").select("*").maybeSingle(),
+      supabase
+        .from("income_sources")
+        .select("*")
+        .is("archived_at", null)
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("income_entries")
+        .select("*")
+        .gte("received_on", since)
+        .order("received_on", { ascending: false }),
+    ]);
+
   return (
-    <ModulePlaceholder
-      icon={Wallet}
-      title="Finance"
-      description="High-level financial visibility — income sources, monthly trends, annual growth, and savings goals. Not accounting software."
-      actionLabel="Log your first income"
+    <FinanceView
+      settings={settings ?? null}
+      sources={sources ?? []}
+      entries={entries ?? []}
     />
   );
 }

@@ -120,11 +120,11 @@ export function TopBar({
               <FolderPlus /> New Project
               <DropdownMenuShortcut>⌘P</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => router.push("/notes")}>
+            <DropdownMenuItem onSelect={() => router.push("/notes?new=1")}>
               <FilePlus2 /> New Note
               <DropdownMenuShortcut>⌘N</DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => router.push("/finance")}>
+            <DropdownMenuItem onSelect={() => router.push("/finance?log=1")}>
               <IndianRupee /> Log Income
               <DropdownMenuShortcut>⌘I</DropdownMenuShortcut>
             </DropdownMenuItem>

@@ -78,15 +78,26 @@ export async function setTaskStatus(
   if (!taskStatuses.includes(status)) return fail("Invalid status");
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("tasks")
     .update({
       status,
       completed_at: status === "done" ? new Date().toISOString() : null,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("title")
+    .single();
 
   if (error) return fail(error.message);
+
+  if (status === "done" && updated) {
+    await supabase.from("activity_log").insert({
+      kind: "task_completed",
+      title: `Task completed: ${updated.title}`,
+      meta: {},
+    });
+  }
+
   revalidateTaskSurfaces();
   return { ok: true };
 }

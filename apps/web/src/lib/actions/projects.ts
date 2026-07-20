@@ -36,6 +36,13 @@ export async function createProject(input: unknown): Promise<ActionResult> {
   });
 
   if (error) return fail(error.message);
+
+  await supabase.from("activity_log").insert({
+    kind: "project_created",
+    title: "Project created",
+    meta: { detail: name },
+  });
+
   revalidateProjectSurfaces();
   return { ok: true };
 }

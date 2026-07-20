@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
-import { Target } from "lucide-react";
 
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { createClient } from "@/lib/supabase/server";
+import { GoalsView } from "@/components/goals/goals-view";
 
 export const metadata: Metadata = { title: "Goals" };
 
-export default function GoalsPage() {
-  return (
-    <ModulePlaceholder
-      icon={Target}
-      title="Goals"
-      description="Personal, business, health, financial, and learning goals with targets, deadlines, and progress tracking."
-      actionLabel="Set your first goal"
-    />
-  );
+export default async function GoalsPage() {
+  const supabase = await createClient();
+  const { data: goals } = await supabase
+    .from("goals")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  return <GoalsView goals={goals ?? []} />;
 }

@@ -47,8 +47,8 @@ export interface QuickAction {
 export const quickActions: QuickAction[] = [
   { label: "New Task", href: "/tasks?new=1", icon: SquarePen, shortcut: "⌘T" },
   { label: "New Project", href: "/projects?new=1", icon: FolderPlus, shortcut: "⌘P" },
-  { label: "New Note", href: "/notes", icon: FilePlus2, shortcut: "⌘N" },
-  { label: "Log Income", href: "/finance", icon: IndianRupee, shortcut: "⌘I" },
+  { label: "New Note", href: "/notes?new=1", icon: FilePlus2, shortcut: "⌘N" },
+  { label: "Log Income", href: "/finance?log=1", icon: IndianRupee, shortcut: "⌘I" },
   { label: "AI Assistant", href: "/ai", icon: Sparkles, shortcut: "⌘J" },
 ];
 

@@ -1,17 +1,20 @@
 import type { Metadata } from "next";
-import { FileText } from "lucide-react";
 
-import { ModulePlaceholder } from "@/components/layout/module-placeholder";
+import { createClient } from "@/lib/supabase/server";
+import { NotesView } from "@/components/notes/notes-view";
 
 export const metadata: Metadata = { title: "Notes" };
 
-export default function NotesPage() {
-  return (
-    <ModulePlaceholder
-      icon={FileText}
-      title="Notes"
-      description="Markdown notes with tags, project links, and search — quick notes, meeting notes, ideas, and decision logs."
-      actionLabel="Write your first note"
-    />
-  );
+export default async function NotesPage() {
+  const supabase = await createClient();
+
+  const [{ data: notes }, { data: projects }] = await Promise.all([
+    supabase.from("notes").select("*").order("updated_at", { ascending: false }),
+    supabase
+      .from("projects")
+      .select("id, name, color")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  return <NotesView notes={notes ?? []} projects={projects ?? []} />;
 }

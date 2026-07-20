@@ -1,7 +1,14 @@
 import Link from "next/link";
-import { AlarmClock, ArrowRight, CalendarClock, Lightbulb, ListTodo, Sparkles } from "lucide-react";
+import {
+  AlarmClock,
+  ArrowRight,
+  CalendarClock,
+  Lightbulb,
+  ListTodo,
+  Sparkles,
+} from "lucide-react";
 
-import { briefStats } from "@/lib/mock-data";
+import type { BriefStats } from "@/lib/insights";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -10,11 +17,7 @@ function Planet() {
     <div className="pointer-events-none absolute -top-7 -right-7 h-44 w-48 select-none max-[420px]:hidden">
       {/* Ambient glow */}
       <div className="absolute top-8 right-10 size-32 rounded-full bg-[#8b5cf6]/25 blur-3xl" />
-      <svg
-        viewBox="0 0 220 220"
-        className="absolute inset-0 animate-float"
-        aria-hidden
-      >
+      <svg viewBox="0 0 220 220" className="absolute inset-0 animate-float" aria-hidden>
         <defs>
           <radialGradient id="planetBody" cx="38%" cy="32%" r="80%">
             <stop offset="0%" stopColor="#a78bfa" />
@@ -27,14 +30,12 @@ function Planet() {
           </linearGradient>
         </defs>
 
-        {/* Stars */}
         <circle cx="30" cy="42" r="1.4" fill="#c4b5fd" opacity="0.8" />
         <circle cx="52" cy="140" r="1.1" fill="#e0e7ff" opacity="0.55" />
         <circle cx="188" cy="30" r="1.6" fill="#e0e7ff" opacity="0.7" />
         <circle cx="200" cy="150" r="1.2" fill="#c4b5fd" opacity="0.5" />
         <circle cx="150" cy="14" r="1" fill="#e0e7ff" opacity="0.6" />
 
-        {/* Back half of ring */}
         <ellipse
           cx="118"
           cy="104"
@@ -48,14 +49,9 @@ function Planet() {
           strokeDashoffset="-80"
           opacity="0.9"
         />
-
-        {/* Planet body */}
         <circle cx="118" cy="104" r="46" fill="url(#planetBody)" />
-        {/* Surface shading */}
         <ellipse cx="102" cy="88" rx="26" ry="18" fill="#ffffff" opacity="0.14" />
         <ellipse cx="132" cy="122" rx="30" ry="20" fill="#1e1b4b" opacity="0.35" />
-
-        {/* Front half of ring */}
         <ellipse
           cx="118"
           cy="104"
@@ -68,8 +64,6 @@ function Planet() {
           strokeDasharray="140 160"
           strokeDashoffset="62"
         />
-
-        {/* Moons */}
         <circle cx="36" cy="88" r="4" fill="#a5b4fc" opacity="0.9" />
         <circle cx="196" cy="128" r="3" fill="#c4b5fd" opacity="0.8" />
       </svg>
@@ -77,13 +71,13 @@ function Planet() {
   );
 }
 
-const stats = [
-  { icon: AlarmClock, value: briefStats.priorities, label: "Priorities" },
-  { icon: CalendarClock, value: briefStats.meetings, label: "Meetings" },
-  { icon: ListTodo, value: briefStats.deadlines, label: "Deadline" },
-];
+export function AIDailyBrief({ brief }: { brief: BriefStats }) {
+  const stats = [
+    { icon: AlarmClock, value: brief.priorities, label: "Priorities" },
+    { icon: CalendarClock, value: brief.meetings, label: "Meetings" },
+    { icon: ListTodo, value: brief.overdue, label: "Overdue" },
+  ];
 
-export function AIDailyBrief() {
   return (
     <Card className="relative h-full overflow-hidden border-primary/25 bg-[linear-gradient(132deg,rgba(110,98,245,0.22)_0%,rgba(139,92,246,0.10)_42%,rgba(13,15,21,0)_75%)]">
       <Planet />
@@ -93,11 +87,11 @@ export function AIDailyBrief() {
           <span className="grid size-6 place-items-center rounded-md bg-primary/20">
             <Sparkles className="size-3.5 text-[#a5b4fc]" />
           </span>
-          <h3 className="text-[15px] font-semibold tracking-tight">AI Daily Brief</h3>
+          <h3 className="text-[15px] font-semibold tracking-tight">Daily Brief</h3>
         </div>
 
-        <p className="mt-3 max-w-[260px] text-[13.5px] leading-relaxed text-secondary-foreground">
-          {briefStats.summary}
+        <p className="mt-3 max-w-[270px] text-[13.5px] leading-relaxed text-secondary-foreground">
+          {brief.summary}
         </p>
 
         <div className="relative z-10 mt-4 flex flex-wrap gap-2">
@@ -121,12 +115,18 @@ export function AIDailyBrief() {
             Top Recommendation
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-secondary-foreground">
-            {briefStats.recommendation}
+            {brief.recommendation ??
+              "You're all clear. Plan tomorrow, or capture what's on your mind."}
           </p>
         </div>
 
         <div className="mt-auto pt-4">
-          <Button asChild size="sm" variant="secondary" className="border-white/10 bg-white/[0.06] hover:bg-white/[0.12]">
+          <Button
+            asChild
+            size="sm"
+            variant="secondary"
+            className="border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
+          >
             <Link href="/ai">
               Open AI Assistant
               <ArrowRight className="size-3.5" />
