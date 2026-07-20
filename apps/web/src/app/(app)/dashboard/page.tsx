@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { format, subDays, subMonths } from "date-fns";
 
+import type { AiBriefContent } from "@/lib/actions/ai";
+import { aiEnabled } from "@/lib/ai/context";
+import { getGitHubEvents, type GitHubEventItem } from "@/lib/github";
 import { computeBrief, computeSuggestions } from "@/lib/insights";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardGrid } from "@/components/dashboard/dashboard-grid";
@@ -84,6 +87,35 @@ export default async function DashboardPage() {
       .order("received_on", { ascending: false }),
   ]);
 
+  const [{ data: aiBriefRow }, { data: githubIntegration }] = await Promise.all([
+    supabase
+      .from("ai_briefs")
+      .select("content")
+      .eq("brief_date", format(new Date(), "yyyy-MM-dd"))
+      .maybeSingle(),
+    supabase
+      .from("integrations")
+      .select("account_label, credentials")
+      .eq("provider", "github")
+      .maybeSingle(),
+  ]);
+
+  const githubToken = (
+    githubIntegration?.credentials as { access_token?: string } | null
+  )?.access_token;
+  let githubEvents: GitHubEventItem[] | null = null;
+  if (githubToken && githubIntegration?.account_label) {
+    try {
+      githubEvents = await getGitHubEvents(
+        githubToken,
+        githubIntegration.account_label,
+        4,
+      );
+    } catch {
+      githubEvents = null;
+    }
+  }
+
   const projectRows = projects ?? [];
   const taskRows = tasks ?? [];
   const eventRows = events ?? [];
@@ -108,6 +140,12 @@ export default async function DashboardPage() {
         incomeEntries: incomeEntries ?? [],
         brief: computeBrief(taskRows, todaysEvents, projectRows),
         suggestions: computeSuggestions(projectRows, taskRows, todaysEvents),
+        aiBrief: (aiBriefRow?.content as AiBriefContent | null) ?? null,
+        aiEnabled: aiEnabled(),
+        github: {
+          connected: Boolean(githubToken),
+          events: githubEvents,
+        },
       }}
     />
   );

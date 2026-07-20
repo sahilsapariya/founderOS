@@ -3,14 +3,18 @@ import {
   AlarmClock,
   ArrowRight,
   CalendarClock,
+  CheckCircle2,
   Lightbulb,
   ListTodo,
   Sparkles,
 } from "lucide-react";
 
+import type { AiBriefContent } from "@/lib/actions/ai";
 import type { BriefStats } from "@/lib/insights";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { GenerateBriefButton } from "./generate-brief-button";
 
 function Planet() {
   return (
@@ -71,7 +75,15 @@ function Planet() {
   );
 }
 
-export function AIDailyBrief({ brief }: { brief: BriefStats }) {
+export function AIDailyBrief({
+  brief,
+  aiBrief,
+  aiEnabled,
+}: {
+  brief: BriefStats;
+  aiBrief: AiBriefContent | null;
+  aiEnabled: boolean;
+}) {
   const stats = [
     { icon: AlarmClock, value: brief.priorities, label: "Priorities" },
     { icon: CalendarClock, value: brief.meetings, label: "Meetings" },
@@ -88,10 +100,11 @@ export function AIDailyBrief({ brief }: { brief: BriefStats }) {
             <Sparkles className="size-3.5 text-[#a5b4fc]" />
           </span>
           <h3 className="text-[15px] font-semibold tracking-tight">Daily Brief</h3>
+          {aiBrief && <Badge variant="default">AI</Badge>}
         </div>
 
         <p className="mt-3 max-w-[270px] text-[13.5px] leading-relaxed text-secondary-foreground">
-          {brief.summary}
+          {aiBrief?.summary ?? brief.summary}
         </p>
 
         <div className="relative z-10 mt-4 flex flex-wrap gap-2">
@@ -115,17 +128,36 @@ export function AIDailyBrief({ brief }: { brief: BriefStats }) {
             Top Recommendation
           </div>
           <p className="mt-1 text-[13px] leading-relaxed text-secondary-foreground">
-            {brief.recommendation ??
+            {aiBrief?.recommendation ??
+              brief.recommendation ??
               "You're all clear. Plan tomorrow, or capture what's on your mind."}
           </p>
+          {aiBrief && aiBrief.focus_points.length > 0 && (
+            <ul className="mt-2 flex flex-col gap-1">
+              {aiBrief.focus_points.map((point) => (
+                <li
+                  key={point}
+                  className="flex items-start gap-1.5 text-[12px] leading-relaxed text-muted-foreground"
+                >
+                  <CheckCircle2 className="mt-0.5 size-3 shrink-0 text-[#a5b4fc]" />
+                  {point}
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
-        <div className="mt-auto pt-4">
+        <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
+          {aiEnabled && <GenerateBriefButton hasBrief={Boolean(aiBrief)} />}
           <Button
             asChild
             size="sm"
-            variant="secondary"
-            className="border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
+            variant={aiEnabled ? "ghost" : "secondary"}
+            className={
+              aiEnabled
+                ? "text-muted-foreground hover:text-foreground"
+                : "border-white/10 bg-white/[0.06] hover:bg-white/[0.12]"
+            }
           >
             <Link href="/ai">
               Open AI Assistant

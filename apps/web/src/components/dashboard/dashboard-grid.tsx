@@ -1,5 +1,7 @@
+import type { AiBriefContent } from "@/lib/actions/ai";
 import type { Database } from "@/lib/database.types";
 import type { ProjectRef, ProjectRow, TaskRow } from "@/lib/db-types";
+import type { GitHubEventItem } from "@/lib/github";
 import type { BriefStats, Suggestion } from "@/lib/insights";
 import type {
   FinanceSettingsRow,
@@ -36,6 +38,9 @@ export interface DashboardData {
   incomeEntries: IncomeEntryRow[];
   brief: BriefStats;
   suggestions: Suggestion[];
+  aiBrief: AiBriefContent | null;
+  aiEnabled: boolean;
+  github: { connected: boolean; events: GitHubEventItem[] | null };
 }
 
 /**
@@ -66,7 +71,11 @@ export function DashboardGrid({ data }: { data: DashboardData }) {
     <div className="grid grid-cols-1 gap-5 md:grid-cols-6 xl:grid-cols-12">
       {/* Row 1 */}
       <Cell index={0} className="md:col-span-6 xl:col-span-4">
-        <AIDailyBrief brief={data.brief} />
+        <AIDailyBrief
+          brief={data.brief}
+          aiBrief={data.aiBrief}
+          aiEnabled={data.aiEnabled}
+        />
       </Cell>
       <Cell index={1} className="md:col-span-3 xl:col-span-4">
         <TodaysFocus tasks={data.tasks} projects={data.projectRefs} />
@@ -93,7 +102,10 @@ export function DashboardGrid({ data }: { data: DashboardData }) {
 
       {/* Row 3 */}
       <Cell index={6} className="md:col-span-3 xl:col-span-3">
-        <GitHubActivity />
+        <GitHubActivity
+          connected={data.github.connected}
+          events={data.github.events}
+        />
       </Cell>
       <Cell index={7} className="md:col-span-3 xl:col-span-3">
         <RecentNotes notes={data.notes} />
